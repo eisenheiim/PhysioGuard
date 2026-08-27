@@ -1,0 +1,40 @@
+{
+  "name": "physioguard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "next start",
+    "asset:check": "node scripts/check_assets.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/pose": "^0.5.1675469404",
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "ajv": "^8.13.0",
+    "autoprefixer": "^10.4.20",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.3",
+    "lucide-react": "^0.468.0",
+    "next": "14.2.35",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.0",
+    "tesseract.js": "^5.1.1",
+    "typescript": "5.4.5"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0"
+  }
+}

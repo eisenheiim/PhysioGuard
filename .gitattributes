@@ -1,0 +1,4 @@
+public/mediapipe/**/*.wasm filter=lfs diff=lfs merge=lfs -text
+public/mediapipe/*.task filter=lfs diff=lfs merge=lfs -text
+public/mediapipe/*.bin filter=lfs diff=lfs merge=lfs -text
+public/pdf.worker.min.mjs filter=lfs diff=lfs merge=lfs -text

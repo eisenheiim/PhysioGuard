@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: physioguard
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 20.20.2
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.2

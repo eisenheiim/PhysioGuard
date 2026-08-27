@@ -91,7 +91,7 @@ export class ProtocolExerciseStateMachine {
     this.state.targetHoldMs = 0;
   }
 
-  update(landmarks: PoseLandmarks, angle: number, timestamp = Date.now()): { completedRep: boolean; safety: ProtocolSafetyResult; state: ProtocolExerciseState } {
+  update(landmarks: PoseLandmarks, angle: number, timestamp = Date.now()): { completedRep: boolean; safety: ProtocolSafetyResult; state: ProtocolExerciseState; completedRepDetails?: { holdMs: number; peakAngle: number | null; startingAngle: number | null } } {
     const deltaMs = this.state.lastUpdatedAt === null ? 0 : Math.max(0, timestamp - this.state.lastUpdatedAt);
     const safety = evaluateProtocolSafety({ protocol: this.protocol, landmarks, angle, previousAngle: Number.isFinite(this.state.currentAngle) ? this.state.currentAngle : undefined, deltaMs });
     this.state.currentAngle = angle;
@@ -159,9 +159,14 @@ export class ProtocolExerciseStateMachine {
       }
     } else if (this.state.phase === "RETURN" && isProtocolBackAtStart(this.protocol, angle, this.state.baselineToleranceDegrees ?? BASELINE_TOLERANCE_DEGREES, this.state.measuredStartAngle ?? this.protocol.baselineAngle)) {
       this.state.repetitionCount += 1;
+      const completedRepDetails = {
+        holdMs: this.state.targetHoldMs,
+        peakAngle: this.state.peakAngle,
+        startingAngle: this.state.measuredStartAngle,
+      };
       const completedRep = true;
       this.resetRep();
-      return { completedRep, safety, state: this.getState() };
+      return { completedRep, safety, state: this.getState(), completedRepDetails };
     }
     return { completedRep: false, safety, state: this.getState() };
   }

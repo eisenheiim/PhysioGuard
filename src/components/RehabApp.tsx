@@ -112,13 +112,27 @@ export function RehabApp({ sourceDocument, aiPlan, onRestartToPaper }: { sourceD
     const nextSide = protocolSupportsSideSelection(nextProtocol) ? "Right" : "Left"; sessionMetricsRef.current = { frames: 0, lowConfidenceFrames: 0, confidenceTotal: 0, safetyEvents: [], velocitySum: 0, velocityCount: 0, peakVelocity: 0 }; setSelectedSide(nextSide); setProtocol(remapProtocolSide(nextProtocol, nextSide)); setReps([]); setRepPeakAngle(null); setStartingAngle(null); setStartingTolerance(4); setSafetyViolations(0); setSafetyHalt(false); setSafetyReason(null); setAngle(42); setCalibrationMs(0); setCountdown(null); setCalibrationIssues([]); setLiveLandmarks({}); setStep("CALIBRATION");
   };
   const currentStatus: HUDStatus = safetyHalt ? "halt" : compensating ? "caution" : "safe";
-  const completeRep = (holdMs?: number) => {
+  const completeRep = (details?: { holdMs?: number; peakAngle?: number | null; startingAngle?: number | null; confidence?: number; velocityDegreesPerSecond?: number; quality?: "Good" | "Limited" | "Incomplete" }) => {
     if (!activeProtocol || currentStatus === "halt") return;
     const nextNumber = currentSetReps + 1;
-    const holdSeconds = typeof holdMs === "number" ? Math.max(0, Math.round(holdMs) / 1000) : undefined;
+    const holdSeconds = typeof details?.holdMs === "number" ? Math.max(0, Math.round(details.holdMs) / 1000) : undefined;
     const holdTarget = currentPlanExercise?.holdSeconds;
     const holdMet = holdTarget == null ? (holdSeconds ? holdSeconds >= 0.5 : undefined) : (holdSeconds ?? 0) >= holdTarget;
-    setReps((items) => [...items, { setNumber: currentSet, repNumber: nextNumber, peakAngle: repPeakAngle ?? angle, startingAngle: startingAngle ?? undefined, compensated: compensating, compensationType: compensating ? activeProtocol.compensationChecks[0]?.type || "form-compensation" : "", safeThresholdHeld: !isSafetyLimitBreached(activeProtocol, angle), holdSeconds, holdMet }]);
+    setReps((items) => [...items, {
+      setNumber: currentSet,
+      repNumber: nextNumber,
+      peakAngle: details?.peakAngle ?? repPeakAngle ?? angle,
+      startingAngle: details?.startingAngle ?? startingAngle ?? undefined,
+      compensated: compensating,
+      compensationType: compensating ? activeProtocol.compensationChecks[0]?.type || "form-compensation" : "",
+      safeThresholdHeld: !isSafetyLimitBreached(activeProtocol, angle),
+      holdSeconds,
+      holdMet,
+      confidence: details?.confidence,
+      velocityDegreesPerSecond: details?.velocityDegreesPerSecond,
+      quality: details?.quality,
+      timestamp: new Date().toISOString(),
+    }]);
     setCompensating(false);
     setRepPeakAngle(null);
     if (nextNumber >= targetReps) {
@@ -235,7 +249,7 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
   onAngleChange: (value: number) => void;
   onSafetyUpdate: (result: ProtocolSafetyResult) => void;
   onBaselineMeasured: (value: number, tolerance: number) => void;
-  onCompleteRep: (holdMs?: number) => void;
+  onCompleteRep: (details?: { holdMs?: number; peakAngle?: number | null; startingAngle?: number | null; confidence?: number; velocityDegreesPerSecond?: number; quality?: "Good" | "Limited" | "Incomplete" }) => void;
   onEndSession: () => void;
   onRestartToCalibration: () => void;
 }) {
@@ -353,7 +367,15 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
       setAutoRepStatus("Rep counted. Return to the starting position for the next rep.");
       announce("rep", activeProtocol.voicePrompts.goodRep);
       if (repetitionCount + 1 >= targetReps) announce("set-complete", currentSet >= targetSets ? "Exercise complete. You finished all prescribed sets." : `Set ${currentSet} complete. Rest, then begin set ${currentSet + 1}.`);
-      onCompleteRep(result.state.targetHoldMs || 0);
+      const confidence = result.safety.averageConfidence;
+      onCompleteRep({
+        holdMs: result.completedRepDetails?.holdMs ?? 0,
+        peakAngle: result.completedRepDetails?.peakAngle,
+        startingAngle: result.completedRepDetails?.startingAngle,
+        confidence,
+        velocityDegreesPerSecond: result.safety.velocityDegPerSecond,
+        quality: confidence < 0.65 ? "Incomplete" : confidence < 0.8 ? "Limited" : "Good",
+      });
     } else if (result.state.phase === "START" && !result.state.baselineReady) setAutoRepStatus("Hold your starting position while we measure your baseline.");
     else if (result.state.phase === "PEAK_HOLD") setAutoRepStatus("Target reached. Hold briefly, then return slowly.");
     else if (result.state.phase === "RETURN") setAutoRepStatus("Return to your starting position.");
@@ -361,7 +383,7 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
   const completeRepManually = () => {
     if (status === "halt" || repetitionCount >= targetReps) return;
     announce("manual-rep", activeProtocol?.voicePrompts.goodRep || "Rep recorded.");
-    onCompleteRep(0);
+    onCompleteRep({ holdMs: 0, confidence: undefined, quality: "Limited" });
   };
   const calibration = evaluateCalibration({ protocol, landmarks, stableForMs: calibrationMs });
   const trackingProtocol = activeProtocol || protocol;

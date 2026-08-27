@@ -14,6 +14,7 @@ export interface ReportRepDetail {
     safeThresholdHeld: boolean;
     timestamp?: string;
     holdSeconds?: number;
+    holdMet?: boolean;
     velocityDegreesPerSecond?: number;
     confidence?: number;
     quality?: MeasurementQuality;
@@ -75,7 +76,7 @@ function percent(value: number, total: number) {
 }
 
 function formatOptional(value: number | undefined, suffix = "") {
-    return value === undefined || Number.isNaN(value) ? "Not recorded" : `${value}${suffix}`;
+    return value === undefined || Number.isNaN(value) ? "Not recorded" : `${Number(value).toFixed(1)}${suffix}`;
 }
 
 function addFooter(doc: jsPDF) {
@@ -162,12 +163,12 @@ export function generateClinicalReport(data: SessionData) {
         body: data.repsDetail.map((rep) => [
             `S${rep.setNumber} / R${rep.repNumber}`,
             formatOptional(rep.startingAngle, "°"),
-            `${rep.peakAngle.toFixed(1)}°`,
-            rep.holdSeconds === undefined ? "-" : `${rep.holdSeconds.toFixed(1)}s`,
+            formatOptional(rep.peakAngle, "°"),
+            rep.holdSeconds === undefined ? "Not recorded" : `${rep.holdSeconds.toFixed(1)}s${rep.holdMet === undefined ? "" : rep.holdMet ? " ✓" : " · short"}`,
             rep.compensated ? "Compensated" : "Clean",
             rep.compensated ? rep.compensationType || "Form issue" : "-",
             rep.safeThresholdHeld ? "Within limit" : "Halt/limit",
-            rep.confidence === undefined ? "Not recorded" : `${Math.round(rep.confidence * 100)}%`,
+            rep.confidence === undefined ? "Not recorded" : `${Math.round(rep.confidence * 100)}%${rep.quality ? ` · ${rep.quality}` : ""}`,
         ]),
         headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
         alternateRowStyles: { fillColor: [248, 250, 252] },

@@ -53,6 +53,15 @@ PhysioGuard is a Next.js and TypeScript web application.
 - **AJV** validates structured exercise plans before they can be used by the session.
 - **Vitest** covers geometry, safety, plan validation, and repetition behavior.
 
+
+### Render Workflows
+
+Render Web Service hosts the PhysioGuard application and server-side API routes.
+
+Render Workflows processes structured rehabilitation session data after an exercise session. It validates the session, calculates range of motion, confidence, form, hold, and safety metrics, and prepares the clinician report. The workflow is divided into independent tasks with retry support.
+
+Only structured exercise measurements are processed by the workflow. Raw camera video is not uploaded.
+
 ## Safety and responsible AI
 
 The application keeps the human in the loop:

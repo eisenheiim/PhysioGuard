@@ -1,40 +1,22 @@
-name: Nightly quality check
+name: Keep Render service warm
 
 on:
   schedule:
-    # Every day at 03:00 UTC.
-    - cron: "0 3 * * *"
+    # Render Free services spin down after 15 minutes without inbound traffic.
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Typecheck, tests, assets, and build
+  ping-render:
+    name: Ping Render health endpoint
     runs-on: ubuntu-latest
+    env:
+      # Set the RENDER_APP_URL repository variable if the service URL differs.
+      RENDER_APP_URL: ${{ vars.RENDER_APP_URL || 'https://physioguard.onrender.com' }}
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Run tests
-        run: npm test
-
-      - name: Check browser assets
-        run: npm run asset:check
-
-      - name: Build production app
-        run: npm run build
+      - name: Request health endpoint
+        run: curl --fail --show-error --silent --max-time 30 "${RENDER_APP_URL%/}/api/healthz"

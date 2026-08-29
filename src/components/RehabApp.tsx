@@ -262,6 +262,8 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
   const forearmBaselineVectorRef = useRef<{ x: number; y: number; z: number } | null>(null);
   const forearmElbowBaselineRef = useRef<number | null>(null);
   const cervicalBaselineOffsetRef = useRef<number | null>(null);
+  const repConfidenceTotalRef = useRef(0);
+  const repConfidenceCountRef = useRef(0);
   const lastAnnouncementRef = useRef<{ key: string; time: number }>({ key: "", time: 0 });
   const [autoRepStatus, setAutoRepStatus] = useState("Reach the target, then return to your starting position.");
   const [trackingReady, setTrackingReady] = useState(false);
@@ -281,6 +283,8 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
     forearmBaselineVectorRef.current = null;
     forearmElbowBaselineRef.current = null;
     cervicalBaselineOffsetRef.current = null;
+    repConfidenceTotalRef.current = 0;
+    repConfidenceCountRef.current = 0;
     lastAnnouncementRef.current = { key: "", time: 0 };
     setAutoRepStatus("Reach the target, then return to your starting position.");
     setTrackingReady(false);
@@ -360,6 +364,10 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
     onAngleChange(Math.round(smoothed));
     const result = stateMachineRef.current.update(trackedLandmarks, smoothed);
     onSafetyUpdate(result.safety);
+    if (result.state.phase !== "START") {
+      repConfidenceTotalRef.current += result.safety.averageConfidence;
+      repConfidenceCountRef.current += 1;
+    }
     if (result.safety.shouldHalt) announce("halt", result.safety.reasons[0] || activeProtocol.voicePrompts.safetyHalt);
     else if (result.safety.severity === "caution") announce("caution", result.safety.reasons[0] || activeProtocol.voicePrompts.compensating);
     if (result.state.baselineReady && result.state.measuredStartAngle !== null) onBaselineMeasured(result.state.measuredStartAngle, result.state.baselineToleranceDegrees ?? 4);
@@ -367,7 +375,11 @@ function PersistentExerciseView({ mode, protocol, activeProtocol, selectedSide, 
       setAutoRepStatus("Rep counted. Return to the starting position for the next rep.");
       announce("rep", activeProtocol.voicePrompts.goodRep);
       if (repetitionCount + 1 >= targetReps) announce("set-complete", currentSet >= targetSets ? "Exercise complete. You finished all prescribed sets." : `Set ${currentSet} complete. Rest, then begin set ${currentSet + 1}.`);
-      const confidence = result.safety.averageConfidence;
+      const confidence = repConfidenceCountRef.current > 0
+        ? repConfidenceTotalRef.current / repConfidenceCountRef.current
+        : result.safety.averageConfidence;
+      repConfidenceTotalRef.current = 0;
+      repConfidenceCountRef.current = 0;
       onCompleteRep({
         holdMs: result.completedRepDetails?.holdMs ?? 0,
         peakAngle: result.completedRepDetails?.peakAngle,

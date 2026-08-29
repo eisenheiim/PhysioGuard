@@ -134,7 +134,7 @@ export function generateClinicalReport(data: SessionData) {
 
     doc.setFillColor(240, 253, 250);
     doc.setDrawColor(153, 246, 228);
-    doc.roundedRect(14, 60, 182, 38, 2, 2, "FD");
+    doc.roundedRect(14, 60, 182, 54, 2, 2, "FD");
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(11);
     doc.text("Clinical summary", 18, 68);
@@ -147,7 +147,7 @@ export function generateClinicalReport(data: SessionData) {
     const metricsLine = `Avg confidence: ${data.averageConfidence === undefined ? "-" : `${Math.round(data.averageConfidence * 100)}%`} | Avg velocity: ${data.avgVelocityDegPerSecond?.toFixed(0) ?? "-"}°/s | Peak velocity: ${data.peakVelocityDegPerSecond?.toFixed(0) ?? "-"}°/s`;
     doc.text(qualityLine, 18, 88);
     doc.text(metricsLine, 18, 94);
-    doc.text(`Duration: ${data.durationSeconds === undefined ? "Not recorded" : `${Math.round(data.durationSeconds)} seconds`} | Incomplete frames: ${data.incompleteFrames ?? 0}`, 18, 100);
+    doc.text(`Duration: ${data.durationSeconds === undefined ? "Not recorded" : `${Math.round(data.durationSeconds)} seconds`} | Incomplete frames: ${data.incompleteFrames ?? 0}`, 18, 108);
 
     // Keep the clinician summary and the detailed audit on predictable pages.
     // Short sessions should still have the same report structure as long ones.

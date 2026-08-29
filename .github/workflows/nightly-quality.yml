@@ -19,4 +19,20 @@ jobs:
 
     steps:
       - name: Request health endpoint
-        run: curl --fail --show-error --silent --max-time 30 "${RENDER_APP_URL%/}/api/healthz"
+        timeout-minutes: 4
+        run: |
+          set -e
+          health_url="${RENDER_APP_URL%/}/api/healthz"
+          for attempt in 1 2 3; do
+            echo "Health check attempt ${attempt}: ${health_url}"
+            if curl --fail --show-error --silent --connect-timeout 15 --max-time 90 "$health_url"; then
+              echo
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Render may be waking up; retrying in 10 seconds..."
+              sleep 10
+            fi
+          done
+          echo "Render health endpoint did not respond successfully after 3 attempts."
+          exit 1

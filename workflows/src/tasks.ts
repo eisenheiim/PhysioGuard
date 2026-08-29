@@ -43,7 +43,7 @@ function assertFinite(value: unknown, label: string) {
 }
 
 export const validateSession = task(
-  { name: "validate_session", retry: { maxRetries: 2 } },
+  { name: "validate_session", retry: { maxRetries: 2, waitDurationMs: 1000 } },
   async (_ctx: TaskContext, session: SessionInput) => {
     if (!session || typeof session.sessionId !== "string" || !session.sessionId.trim()) {
       throw new Error("A sessionId is required");
@@ -63,7 +63,7 @@ export const validateSession = task(
 );
 
 export const analyzeSession = task(
-  { name: "analyze_session", retry: { maxRetries: 2 } },
+  { name: "analyze_session", retry: { maxRetries: 2, waitDurationMs: 1000 } },
   async (_ctx: TaskContext, session: SessionInput): Promise<SessionMetrics> => {
     const totalReps = session.reps.length;
     const cleanReps = session.reps.filter((rep) => !rep.compensated).length;
@@ -102,7 +102,7 @@ export const analyzeSession = task(
 );
 
 export const prepareReport = task(
-  { name: "prepare_report", retry: { maxRetries: 2 } },
+  { name: "prepare_report", retry: { maxRetries: 2, waitDurationMs: 1000 } },
   async (_ctx: TaskContext, metrics: SessionMetrics) => ({
     ...metrics,
     reportStatus: "ready" as const,
@@ -111,7 +111,7 @@ export const prepareReport = task(
 );
 
 export const processRehabilitationSession = task(
-  { name: "process_rehabilitation_session", retry: { maxRetries: 2 } },
+  { name: "process_rehabilitation_session", retry: { maxRetries: 2, waitDurationMs: 1000 } },
   async (ctx: TaskContext, session: SessionInput) => {
     const validated = await ctx.run(validateSession, session);
     const metrics = await ctx.run(analyzeSession, validated);

@@ -70,6 +70,9 @@ export interface ProtocolSafetyResult {
 }
 
 const finiteOrZero = (value: number) => (Number.isFinite(value) ? value : 0);
+// A single pose-model jump can look very fast for one frame. Keep the
+// velocity guardrail, but give normal camera jitter more room before halting.
+const VELOCITY_ALERT_THRESHOLD_DEG_PER_SECOND = 360;
 // A small fixed return band avoids counting a rep from camera drift while
 // allowing normal pose-estimation jitter. Configurable per state-machine use.
 export const BASELINE_TOLERANCE_DEGREES = 6;
@@ -128,7 +131,7 @@ export function evaluateProtocolSafety(input: {
   const velocity = input.previousAngle === undefined ? 0 : calculateVelocity(input.previousAngle, input.angle, input.deltaMs ?? 0);
   if (averageConfidence < 0.65) reasons.push("Pose confidence is insufficient");
   if (isSafetyLimitBreached(input.protocol, input.angle)) reasons.push(`Safety limit reached at ${input.protocol.safetyHardStopAngle}°`);
-  if (Number.isFinite(velocity) && velocity > 180) reasons.push("Movement velocity spike detected");
+  if (averageConfidence >= 0.75 && Number.isFinite(velocity) && velocity > VELOCITY_ALERT_THRESHOLD_DEG_PER_SECOND) reasons.push("Movement velocity spike detected");
   const hardHalt = reasons.some((reason) => reason.startsWith("Pose confidence") || reason.startsWith("Safety limit") || reason.startsWith("Movement velocity"));
   return { shouldHalt: hardHalt, severity: hardHalt ? "halt" : compensationTypes.length ? "caution" : "safe", reasons, compensationTypes, velocityDegPerSecond: finiteOrZero(velocity), angle: input.angle, averageConfidence };
 }

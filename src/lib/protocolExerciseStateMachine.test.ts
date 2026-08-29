@@ -54,7 +54,7 @@ describe("ProtocolExerciseStateMachine", () => {
   it("flags velocity spike", () => {
     const sm = new ProtocolExerciseStateMachine(baseProtocol);
     for (let i=0;i<12;i++) sm.update(landmarks(), 0, 1000+i*16);
-    // Jump angle quickly within small delta to trigger velocity>180
+    // Jump angle quickly within small delta to trigger velocity>360
     const r1 = sm.update(landmarks(), 0, 2000);
     const r2 = sm.update(landmarks(), 100, 2005);
     expect(r2.safety.reasons.join(" ")).toMatch(/velocity/i);
